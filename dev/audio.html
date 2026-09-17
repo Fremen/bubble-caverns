@@ -64,7 +64,7 @@
   </div>
 
 <script type="module">
-  import { AudioSys, SFX_LIST } from '../js/audio.js';
+  import { AudioSys, MUSIC_TRACKS, SFX_LIST } from '../js/audio.js';
 
   AudioSys.init();
 
@@ -95,7 +95,7 @@
 
   // Music controls.
   const musicRow = document.getElementById('music');
-  for (const track of ['title', 'main', 'boss']) {
+  for (const track of MUSIC_TRACKS) {
     const b = document.createElement('button');
     b.className = 'music';
     b.textContent = '▶ ' + track;

@@ -99,7 +99,7 @@ export const AudioSys = {
   unlock(),               // call on first user gesture; creates/resumes AudioContext
   play(name, opts = {}),  // fire-and-forget SFX; silent no-op before unlock
   music: {
-    play(track),          // 'title' | 'main' | 'boss'  (restarts if different track)
+    play(track),          // title | moss | crystal | gold | ember | abyss | boss
     setFast(fast),        // bool; tempo ×1.35, switch cleanly at next bar
     stop(),
   },
@@ -115,7 +115,8 @@ SFX names: `jump`, `shoot`, `trap`, `pop`, `enemy_down`, `pickup`, `powerup`,
 - All synthesized with WebAudio (oscillators/noise buffers/envelopes); no samples.
 - `opts.pitch` (0..7): combo escalation — `pop` should rise in pitch per step.
   `opts.vol` (0..1) optional.
-- Music: original chiptune compositions via a lookahead step-sequencer
+- Music: original four-channel, tracker-inspired compositions via a lookahead
+  step-sequencer, revoiced for each cave theme
   (square lead, triangle bass, soft noise hats; light delay ok). `title` =
   bouncy 8 bars, `main` = catchy 16-bar earworm, `boss` = driving minor.
 - Master chain: gain → DynamicsCompressor → destination. Modest overall volume.

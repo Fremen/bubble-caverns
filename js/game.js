@@ -102,7 +102,7 @@ export class Game {
         pl.cheer = false;
       }
     }
-    AudioSys.music.play(this.level.boss ? 'boss' : 'main');
+    AudioSys.music.play(this.level.boss ? 'boss' : this.level.theme);
     AudioSys.music.setFast(false);
   }
 

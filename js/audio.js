@@ -12,6 +12,8 @@ export const SFX_LIST = [
   'level_clear', 'game_over', 'hurry', 'boss_hit', 'boss_down', 'count',
 ];
 
+export const MUSIC_TRACKS = ['title', 'moss', 'crystal', 'gold', 'ember', 'abyss', 'boss'];
+
 // ---------------------------------------------------------------------------
 // Internal state
 // ---------------------------------------------------------------------------
@@ -459,6 +461,46 @@ function bassPound(r) {
   return seq.map((m, i) => [i * 2, m, 1]);
 }
 
+function transpose(notes, semitones) {
+  return notes.map(([bar, step, midi, dur]) => [bar, step, midi + semitones, dur]);
+}
+
+function transposeRoots(roots, semitones) {
+  return roots.map(root => root + semitones);
+}
+
+// Four-channel tracker character: lead, bass, fast fifth/octave arpeggio and
+// compact synthesized drums. Styles revoice the same hook for each cave set.
+const MUSIC_STYLES = {
+  title:   { lead: 'square',   bass: 'triangle', leadVol: 0.11, bassVol: 0.22, arpVol: 0.025 },
+  moss:    { lead: 'square',   bass: 'triangle', leadVol: 0.12, bassVol: 0.25, arpVol: 0.035 },
+  crystal: { lead: 'triangle', bass: 'square',   leadVol: 0.12, bassVol: 0.16, arpVol: 0.045 },
+  gold:    { lead: 'square',   bass: 'triangle', leadVol: 0.13, bassVol: 0.27, arpVol: 0.05 },
+  ember:   { lead: 'sawtooth', bass: 'square',   leadVol: 0.095, bassVol: 0.16, arpVol: 0.035 },
+  abyss:   { lead: 'triangle', bass: 'sine',     leadVol: 0.12, bassVol: 0.28, arpVol: 0.025 },
+  boss:    { lead: 'sawtooth', bass: 'square',   leadVol: 0.105, bassVol: 0.19, arpVol: 0.035 },
+};
+
+function drumsTitle(s) {
+  if (s === 0 || s === 8) return ['kick'];
+  if (s === 4 || s === 12) return ['snare'];
+  return [];
+}
+
+function drumsArcade(s) {
+  const hits = [];
+  if (s === 0 || s === 8 || s === 10) hits.push('kick');
+  if (s === 4 || s === 12) hits.push('snare');
+  return hits;
+}
+
+function drumsBoss(s) {
+  const hits = [];
+  if (s === 0 || s === 3 || s === 8 || s === 10) hits.push('kick');
+  if (s === 4 || s === 12) hits.push('snare');
+  return hits;
+}
+
 // Hat figure: per step in a bar return [vol, durSec] or null.
 function hatTitle(s) {
   if (s % 2 !== 0) return null;
@@ -474,7 +516,7 @@ function hatBoss(s) {
   return s % 2 === 0 ? [0.22, 0.03] : [0.08, 0.02];
 }
 
-function compileTrack(bpm, bars, lead, harm, roots, bassFig, hatFig) {
+function compileTrack(bpm, bars, lead, harm, roots, bassFig, hatFig, drumFig, style) {
   const total = bars * STEPS_PER_BAR;
   const ev = [];
   for (let i = 0; i < total; i++) ev.push([]);
@@ -484,18 +526,30 @@ function compileTrack(bpm, bars, lead, harm, roots, bassFig, hatFig) {
     for (const [s, m, d] of bassFig(roots[b % roots.length])) {
       ev[b * STEPS_PER_BAR + s].push({ k: 'bass', m, d });
     }
+    const root = roots[b % roots.length];
     for (let s = 0; s < STEPS_PER_BAR; s++) {
       const h = hatFig(s);
       if (h) ev[b * STEPS_PER_BAR + s].push({ k: 'hat', vol: h[0], dur: h[1] });
+      if (s % 2 === 1) {
+        const arp = [root + 12, root + 19, root + 24, root + 19][Math.floor(s / 2) % 4];
+        ev[b * STEPS_PER_BAR + s].push({ k: 'arp', m: arp, d: 1 });
+      }
+      for (const drum of drumFig(s)) ev[b * STEPS_PER_BAR + s].push({ k: drum });
     }
   }
-  return { bpm, total, ev };
+  return { bpm, total, ev, style };
 }
 
+const MOSS_TRACK = compileTrack(128, 16, MAIN_LEAD, MAIN_HARM, MAIN_ROOTS, bassDriving, hatMain, drumsArcade, MUSIC_STYLES.moss);
 const TRACKS = {
-  title: compileTrack(112, 8, TITLE_LEAD, TITLE_HARM, TITLE_ROOTS, bassOomPah, hatTitle),
-  main: compileTrack(126, 16, MAIN_LEAD, MAIN_HARM, MAIN_ROOTS, bassDriving, hatMain),
-  boss: compileTrack(140, 8, BOSS_LEAD, BOSS_HARM, BOSS_ROOTS, bassPound, hatBoss),
+  title: compileTrack(116, 8, TITLE_LEAD, TITLE_HARM, TITLE_ROOTS, bassOomPah, hatTitle, drumsTitle, MUSIC_STYLES.title),
+  main: MOSS_TRACK, // backwards-compatible alias
+  moss: MOSS_TRACK,
+  crystal: compileTrack(134, 16, transpose(MAIN_LEAD, 5), transpose(MAIN_HARM, 5), transposeRoots(MAIN_ROOTS, 5), bassDriving, hatMain, drumsArcade, MUSIC_STYLES.crystal),
+  gold: compileTrack(124, 16, transpose(MAIN_LEAD, 2), transpose(MAIN_HARM, 2), transposeRoots(MAIN_ROOTS, 2), bassOomPah, hatMain, drumsArcade, MUSIC_STYLES.gold),
+  ember: compileTrack(138, 16, transpose(MAIN_LEAD, -2), transpose(MAIN_HARM, -2), transposeRoots(MAIN_ROOTS, -2), bassDriving, hatBoss, drumsArcade, MUSIC_STYLES.ember),
+  abyss: compileTrack(118, 16, transpose(MAIN_LEAD, -5), transpose(MAIN_HARM, -5), transposeRoots(MAIN_ROOTS, -5), bassOomPah, hatTitle, drumsArcade, MUSIC_STYLES.abyss),
+  boss: compileTrack(144, 8, BOSS_LEAD, BOSS_HARM, BOSS_ROOTS, bassPound, hatBoss, drumsBoss, MUSIC_STYLES.boss),
 };
 
 // --- sequencer state ---
@@ -512,9 +566,11 @@ function musicNote(t, midi, durSec, kind) {
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   let vol, type, send = false;
-  if (kind === 'lead') { type = 'square'; vol = 0.14; send = true; }
-  else if (kind === 'harm') { type = 'square'; vol = 0.055; }
-  else { type = 'triangle'; vol = 0.27; durSec *= 0.85; } // bass, slightly staccato
+  const style = song.track.style || MUSIC_STYLES.moss;
+  if (kind === 'lead') { type = style.lead; vol = style.leadVol; send = true; }
+  else if (kind === 'harm') { type = 'square'; vol = style.leadVol * 0.38; }
+  else if (kind === 'arp') { type = 'square'; vol = style.arpVol; durSec *= 0.52; }
+  else { type = style.bass; vol = style.bassVol; durSec *= 0.78; } // tracker-staccato bass
   o.type = type;
   o.frequency.value = mtof(midi);
   if (kind === 'harm') o.detune.value = 5; // gentle chorus against the lead
@@ -527,6 +583,15 @@ function musicNote(t, midi, durSec, kind) {
   if (send && delaySend) g.connect(delaySend);
   o.start(t);
   o.stop(t + durSec + 0.03);
+}
+
+function musicKick(t) {
+  tone(t, { type: 'sine', f0: 125, f1: 42, slide: 0.11, dur: 0.14, vol: 0.26, dest: song.gain });
+}
+
+function musicSnare(t) {
+  noise(t, { type: 'highpass', f0: 1800, f1: 5200, dur: 0.09, vol: 0.12, dest: song.gain });
+  tone(t, { type: 'triangle', f0: 185, f1: 120, dur: 0.08, vol: 0.07, dest: song.gain });
 }
 
 function musicHat(t, vol, dur) {
@@ -547,6 +612,8 @@ function musicHat(t, vol, dur) {
 function scheduleStep(track, step, t, sd) {
   for (const e of track.ev[step]) {
     if (e.k === 'hat') musicHat(t, e.vol, e.dur);
+    else if (e.k === 'kick') musicKick(t);
+    else if (e.k === 'snare') musicSnare(t);
     else musicNote(t, e.m, e.d * sd, e.k);
   }
 }
@@ -657,7 +724,7 @@ export const AudioSys = {
   },
 
   music: {
-    // 'title' | 'main' | 'boss' — restarts only if a different track.
+    // title, five cave themes, or boss — restarts only if different.
     play(track) {
       try {
         if (!TRACKS[track]) {
