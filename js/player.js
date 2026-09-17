@@ -5,7 +5,7 @@ import { PHYS, PLAYER, PLAY_Y, PLAY_H, COLORS } from './constants.js';
 import { clamp } from './utils.js';
 import { moveEntity } from './physics.js';
 import { sprite } from './sprites.js';
-import { AudioSys } from './audio.js?v=20260917b';
+import { AudioSys } from './audio.js?v=20260917c';
 import { Particles } from './particles.js';
 
 export class Player {

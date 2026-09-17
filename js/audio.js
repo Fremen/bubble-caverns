@@ -466,16 +466,17 @@ function transposeRoots(roots, semitones) {
   return roots.map(root => root + semitones);
 }
 
-// Four-channel tracker character: lead, bass, fast fifth/octave arpeggio and
-// compact synthesized drums. Styles revoice the same hook for each cave set.
+// Sound colours used by both the legacy sequencer helpers and the atmospheric
+// score. Gameplay uses the ambient volumes: slow pads, a low drone and sparse
+// bell-like echoes, leaving space for the effects that matter to play.
 const MUSIC_STYLES = {
-  title:   { lead: 'square',   bass: 'triangle', leadVol: 0.11, bassVol: 0.22, arpVol: 0.025 },
-  moss:    { lead: 'square',   bass: 'triangle', leadVol: 0.12, bassVol: 0.25, arpVol: 0.035 },
-  crystal: { lead: 'triangle', bass: 'square',   leadVol: 0.12, bassVol: 0.16, arpVol: 0.045 },
-  gold:    { lead: 'square',   bass: 'triangle', leadVol: 0.13, bassVol: 0.27, arpVol: 0.05 },
-  ember:   { lead: 'sawtooth', bass: 'square',   leadVol: 0.095, bassVol: 0.16, arpVol: 0.035 },
-  abyss:   { lead: 'triangle', bass: 'sine',     leadVol: 0.12, bassVol: 0.28, arpVol: 0.025 },
-  boss:    { lead: 'sawtooth', bass: 'square',   leadVol: 0.105, bassVol: 0.19, arpVol: 0.035 },
+  title:   { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.11, arpVol: 0.018, padVol: 0.026, droneVol: 0.055, bellVol: 0.032 },
+  moss:    { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.11, arpVol: 0.018, padVol: 0.030, droneVol: 0.060, bellVol: 0.027 },
+  crystal: { lead: 'sine', bass: 'sine', leadVol: 0.08, bassVol: 0.10, arpVol: 0.020, padVol: 0.024, droneVol: 0.045, bellVol: 0.040 },
+  gold:    { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.11, arpVol: 0.020, padVol: 0.029, droneVol: 0.052, bellVol: 0.034 },
+  ember:   { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.12, arpVol: 0.018, padVol: 0.025, droneVol: 0.070, bellVol: 0.024 },
+  abyss:   { lead: 'sine', bass: 'sine', leadVol: 0.07, bassVol: 0.12, arpVol: 0.016, padVol: 0.022, droneVol: 0.075, bellVol: 0.020 },
+  boss:    { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.13, arpVol: 0.018, padVol: 0.027, droneVol: 0.085, bellVol: 0.026 },
 };
 
 function drumsTitle(s) {
@@ -538,15 +539,37 @@ function compileTrack(bpm, bars, lead, harm, roots, bassFig, hatFig, drumFig, st
 }
 
 const MOSS_TRACK = compileTrack(128, 16, MAIN_LEAD, MAIN_HARM, MAIN_ROOTS, bassDriving, hatMain, drumsArcade, MUSIC_STYLES.moss);
+
+// Ambient score: one chord per slow bar, with a sustained sub-root and only
+// two high echoes per bar. Chords are arrays of MIDI notes; the first note is
+// also used for the drone. There is deliberately no percussion or repeating
+// lead melody during normal play.
+function compileAmbientTrack(bpm, chords, style, bossPulse = false) {
+  const total = chords.length * STEPS_PER_BAR;
+  const ev = Array.from({ length: total }, () => []);
+  chords.forEach((chord, bar) => {
+    const base = bar * STEPS_PER_BAR;
+    const root = chord[0];
+    ev[base].push({ k: 'drone', m: root - 12, d: 15.5 });
+    for (const note of chord) ev[base].push({ k: 'pad', m: note, d: 15.5 });
+    ev[base + 6].push({ k: 'bell', m: chord[2] + 12, d: 5 });
+    ev[base + 13].push({ k: 'bell', m: chord[1] + 12, d: 3 });
+    if (bossPulse) {
+      for (const step of [0, 4, 8, 12]) ev[base + step].push({ k: 'pulse', m: root - 12, d: 2.3 });
+    }
+  });
+  return { bpm, total, ev, style };
+}
+
 const TRACKS = {
-  title: compileTrack(116, 8, TITLE_LEAD, TITLE_HARM, TITLE_ROOTS, bassOomPah, hatTitle, drumsTitle, MUSIC_STYLES.title),
-  main: MOSS_TRACK, // backwards-compatible alias
-  moss: MOSS_TRACK,
-  crystal: compileTrack(134, 16, transpose(MAIN_LEAD, 5), transpose(MAIN_HARM, 5), transposeRoots(MAIN_ROOTS, 5), bassDriving, hatMain, drumsArcade, MUSIC_STYLES.crystal),
-  gold: compileTrack(124, 16, transpose(MAIN_LEAD, 2), transpose(MAIN_HARM, 2), transposeRoots(MAIN_ROOTS, 2), bassOomPah, hatMain, drumsArcade, MUSIC_STYLES.gold),
-  ember: compileTrack(138, 16, transpose(MAIN_LEAD, -2), transpose(MAIN_HARM, -2), transposeRoots(MAIN_ROOTS, -2), bassDriving, hatBoss, drumsArcade, MUSIC_STYLES.ember),
-  abyss: compileTrack(118, 16, transpose(MAIN_LEAD, -5), transpose(MAIN_HARM, -5), transposeRoots(MAIN_ROOTS, -5), bassOomPah, hatTitle, drumsArcade, MUSIC_STYLES.abyss),
-  boss: compileTrack(144, 8, BOSS_LEAD, BOSS_HARM, BOSS_ROOTS, bassPound, hatBoss, drumsBoss, MUSIC_STYLES.boss),
+  title: compileAmbientTrack(54, [[57, 60, 64], [53, 57, 60], [55, 59, 62], [52, 55, 59]], MUSIC_STYLES.title),
+  main: compileAmbientTrack(50, [[52, 55, 59], [48, 52, 55], [50, 53, 57], [47, 50, 54]], MUSIC_STYLES.moss),
+  moss: compileAmbientTrack(50, [[52, 55, 59], [48, 52, 55], [50, 53, 57], [47, 50, 54]], MUSIC_STYLES.moss),
+  crystal: compileAmbientTrack(46, [[57, 60, 64], [55, 59, 62], [60, 64, 67], [52, 57, 60]], MUSIC_STYLES.crystal),
+  gold: compileAmbientTrack(52, [[53, 57, 60], [48, 53, 57], [55, 59, 62], [52, 55, 60]], MUSIC_STYLES.gold),
+  ember: compileAmbientTrack(48, [[52, 55, 58], [49, 52, 56], [50, 53, 57], [47, 52, 55]], MUSIC_STYLES.ember),
+  abyss: compileAmbientTrack(42, [[47, 50, 54], [43, 47, 50], [45, 48, 52], [42, 47, 49]], MUSIC_STYLES.abyss),
+  boss: compileAmbientTrack(58, [[45, 48, 52], [44, 47, 51], [41, 45, 48], [40, 44, 47]], MUSIC_STYLES.boss, true),
 };
 
 // --- sequencer state ---
@@ -562,18 +585,22 @@ function stepDur(track) {
 function musicNote(t, midi, durSec, kind) {
   const o = ctx.createOscillator();
   const g = ctx.createGain();
-  let vol, type, send = false;
+  let vol, type, send = false, attack = 0.006, release = 0.035;
   const style = song.track.style || MUSIC_STYLES.moss;
-  if (kind === 'lead') { type = style.lead; vol = style.leadVol; send = true; }
+  if (kind === 'pad') { type = 'triangle'; vol = style.padVol; attack = 0.65; release = 0.8; send = true; }
+  else if (kind === 'drone') { type = 'sine'; vol = style.droneVol; attack = 0.9; release = 1.0; }
+  else if (kind === 'bell') { type = 'sine'; vol = style.bellVol; attack = 0.025; release = Math.min(0.9, durSec * 0.7); send = true; }
+  else if (kind === 'pulse') { type = 'sine'; vol = style.droneVol * 0.7; attack = 0.04; release = durSec * 0.65; }
+  else if (kind === 'lead') { type = style.lead; vol = style.leadVol; send = true; }
   else if (kind === 'harm') { type = 'square'; vol = style.leadVol * 0.38; }
   else if (kind === 'arp') { type = 'square'; vol = style.arpVol; durSec *= 0.52; }
   else { type = style.bass; vol = style.bassVol; durSec *= 0.78; } // tracker-staccato bass
   o.type = type;
   o.frequency.value = mtof(midi);
   if (kind === 'harm') o.detune.value = 5; // gentle chorus against the lead
-  const sus = Math.max(0.02, durSec - 0.035);
+  const sus = Math.max(attack + 0.02, durSec - release);
   g.gain.setValueAtTime(0.0001, t);
-  g.gain.linearRampToValueAtTime(vol, t + 0.006);
+  g.gain.linearRampToValueAtTime(vol, t + Math.min(attack, durSec * 0.4));
   g.gain.setValueAtTime(vol, t + sus);
   g.gain.exponentialRampToValueAtTime(0.0001, t + durSec);
   o.connect(g).connect(song.gain);

@@ -7,7 +7,7 @@ import { clamp } from './utils.js';
 import { moveEntity, solidAtPx, wrapToTop } from './physics.js';
 import { sprite } from './sprites.js';
 import { Particles } from './particles.js';
-import { AudioSys } from './audio.js?v=20260917b';
+import { AudioSys } from './audio.js?v=20260917c';
 
 export class Enemy {
   constructor(type, x, y, rng) {

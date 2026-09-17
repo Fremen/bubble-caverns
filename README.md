@@ -7,15 +7,13 @@ sprite, sound, and melody here is original.
 
 **Trap critters in bubbles. Pop them. Chain combos. Eat the snacks. Don't dawdle.**
 
-[Play Bubble Caverns](https://fremen.github.io/bubble-caverns/)
-
 ## Run it
 
 No build step, no dependencies — it's vanilla ES modules. Serve the folder
 over HTTP (modules don't load from `file://`):
 
 ```bash
-cd bubble-caverns
+cd bubblebobble
 python3 -m http.server 8763
 # then open http://localhost:8763
 ```
@@ -89,7 +87,7 @@ js/
   ui.js               HUD + all menu screens
   input.js            keyboard + gamepad, edge detection, co-op bindings
   sprites.js          ALL art, procedurally painted at boot (no asset files)
-  audio.js            ALL audio, synthesized WebAudio (SFX + 3 original tracks)
+  audio.js            ALL audio, synthesized WebAudio (SFX + ambient cave score)
   particles.js        pooled VFX + screen shake
 dev/                  standalone preview pages per module (sprites/audio/levels/particles)
 tests/run.html        logic + integration test page (PASS/FAIL output)
@@ -114,12 +112,3 @@ All code, art, audio, characters, and level designs are original works
 created for this project. The game pays homage to a classic *genre* —
 single-screen bubble-trapping arcade platformers — without using any
 copyrighted assets, names, or music.
-
-Released under the [MIT License](LICENSE).
-
-
-## Touch controls
-
-On touchscreen devices, controls appear below the game. Use the direction pad for movement and menus, Jump to jump, and Bubble to shoot. Start confirms menus; Pause opens the pause menu. Touch controls operate player one. Multiple controls can be held together. Inputs release on cancelled touches or when switching away from the app. Landscape gives more horizontal room.
-
-The game viewport reserves space for the control panel and its safe-area padding. Mobile input lifecycle checks pass; physical iPhone Safari performance and playability still need device testing.

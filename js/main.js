@@ -3,7 +3,7 @@
 
 import { WIDTH, HEIGHT, STEP } from './constants.js';
 import { initSprites } from './sprites.js';
-import { AudioSys } from './audio.js?v=20260917b';
+import { AudioSys } from './audio.js?v=20260917c';
 import { Input } from './input.js';
 import { Game } from './game.js';
 import { validateLevels } from './levels.js';
