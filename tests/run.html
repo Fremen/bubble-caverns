@@ -43,7 +43,19 @@ async function run() {
 
   // ---- physics math --------------------------------------------------
   const apex = (PHYS.JUMP_V * PHYS.JUMP_V) / (2 * PHYS.GRAVITY);
-  check('physics: jump apex ≈ 3.75 tiles', Math.abs(apex / TILE - 3.75) < 0.01, `apex=${apex}`);
+  check('physics: jump apex clears four-tile gaps', apex / TILE > 4.2, `apex=${apex / TILE} tiles`);
+  const levelOnePlatformRows = LEVELS[0].grid
+    .map((row, index) => row.includes('=') ? index : null)
+    .filter(index => index !== null);
+  const levelOneGaps = [
+    19 - levelOnePlatformRows.at(-1),
+    ...levelOnePlatformRows.slice(0, -1).map((row, index) => levelOnePlatformRows[index + 1] - row),
+  ];
+  check(
+    'level 1: every opening platform gap is reachable',
+    levelOneGaps.every(gap => gap * TILE < apex),
+    `gaps=${levelOneGaps.join(',')} apex=${apex / TILE} tiles`,
+  );
 
   // ---- scoring -------------------------------------------------------
   check('score: combo doubles 1000→2000→4000', comboPoints(1) === 1000 && comboPoints(2) === 2000 && comboPoints(3) === 4000);
