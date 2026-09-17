@@ -5,7 +5,7 @@
 // Legend: '#' solid · '=' one-way platform · ' ' empty · 'P'/'Q' player spawns
 //         '1' Bumbler '2' Hopkin '3' Snoot '4' Wispel '5' Klonk 'K' King Klonk
 //         'B' bouncer bubble · '*' fruit spawn spot · '^' spike (sits on the '#' below it)
-// Physics respected: jump apex ~3.75 tiles, standable surfaces 3-4 rows apart,
+// Physics respected: jump apex ~4.27 tiles, standable surfaces 3-4 rows apart,
 // players jump UP through '='. Row-19 gaps = intentional vertical wrap
 // (levels 2, 4, 8, 11). Movers are deadly orbs ping-ponging over open space
 // (levels 6, 9, 11). Spikes appear from level 6 onward only.

@@ -19,7 +19,7 @@ export const PHYS = {
   RUN_ACCEL: 2200,
   RUN_DECEL: 2600,
   AIR_CONTROL: 0.75,
-  JUMP_V: 600,                               // apex = v^2/2g = 120px = 3.75 tiles
+  JUMP_V: 640,                               // apex = 136.5px = 4.27 tiles; clears four-row platform gaps
   JUMP_CUT: 0.55,                            // velocity multiplier on early release
   COYOTE: 0.10,
   JUMP_BUFFER: 0.12,

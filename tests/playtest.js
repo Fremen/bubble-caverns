@@ -29,14 +29,21 @@
     s = g.step(60);
     ok('jump: lands again', s.players[0].onGround);
 
+    // Level 1 opens with a four-row climb. A full jump must reach its first
+    // platform; this guards against tuning the apex below the level geometry.
+    const game = g.game;
+    const p = game.players[0];
+    p.x = 15 * 32;
+    p.y = 64 + 19 * 32 - p.h / 2 - 0.01;
+    p.vx = 0; p.vy = 0; p.onGround = true; p.invuln = 999;
+    g.key('Space', true); s = g.step(45); g.key('Space', false);
+    ok('level 1: first platform reachable', p.onGround && p.y < 560, `y=${p.y}, onGround=${p.onGround}`);
+
     // 5. shoot: bubble exists
     g.key('KeyJ', true); s = g.step(3); g.key('KeyJ', false);
     ok('shoot: bubble spawned', s.bubbles.length >= 1, JSON.stringify(s.bubbles));
 
     // 6. trap: teleport enemy onto a fresh bubble path
-    const game = g.game;
-    const p = game.players[0];
-    p.invuln = 999;
     g.key('KeyK', true); g.step(2); g.key('KeyK', false);
     const e = game.enemies[0];
     let trapped = false;
