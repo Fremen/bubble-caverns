@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bubble Caverns — Levels Preview</title>
+<style>
+  body {
+    background: #10141c;
+    color: #e8ecf4;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    margin: 0;
+    padding: 24px;
+  }
+  h1 { font-size: 20px; margin: 0 0 12px; color: #9fd6ff; }
+  #validation {
+    margin: 0 0 24px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    white-space: pre-wrap;
+  }
+  #validation.ok { background: #11351f; color: #7df0a5; border: 1px solid #1f7a45; }
+  #validation.bad { background: #3a1414; color: #ff9a9a; border: 1px solid #8d2c2c; }
+  .level { margin-bottom: 32px; }
+  .level h2 { font-size: 15px; margin: 0 0 6px; color: #ffd97a; font-weight: 600; }
+  .level .meta { font-size: 12px; color: #9aa7bd; margin: 0 0 8px; }
+  pre.grid {
+    display: inline-block;
+    margin: 0;
+    padding: 12px 14px;
+    background: #060a10;
+    border: 1px solid #2a3548;
+    border-radius: 8px;
+    font-size: 15px;
+    line-height: 1.12;
+    letter-spacing: 1px;
+    color: #f2f5fa;             /* default: white-ish on dark */
+  }
+  .solid   { color: #6f87a8; }  /* '#' steel blue */
+  .plat    { color: #e8a23c; }  /* '=' amber */
+  .spawn   { color: #6df58f; font-weight: bold; }   /* P / Q */
+  .enemy   { color: #ff7d6e; font-weight: bold; }   /* 1-5 */
+  .boss    { color: #ff4fd2; font-weight: bold; }   /* K */
+  .bounce  { color: #ffe34d; font-weight: bold; }   /* B */
+  .fruit   { color: #ff9fce; }                      /* * */
+  .spike   { color: #ff4040; font-weight: bold; }   /* ^ */
+</style>
+</head>
+<body>
+<h1>Bubble Caverns — js/levels.js preview</h1>
+<div id="validation"></div>
+<div id="levels"></div>
+
+<script type="module">
+  import { LEVELS, LEGEND, validateLevels } from '../js/levels.js';
+
+  const CLASSES = {
+    '#': 'solid', '=': 'plat',
+    'P': 'spawn', 'Q': 'spawn',
+    '1': 'enemy', '2': 'enemy', '3': 'enemy', '4': 'enemy', '5': 'enemy',
+    'K': 'boss', 'B': 'bounce', '*': 'fruit', '^': 'spike',
+  };
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // validation output at top
+  const issues = validateLevels();
+  const vEl = document.getElementById('validation');
+  if (issues.length === 0) {
+    vEl.className = 'ok';
+    vEl.textContent = 'validateLevels() -> [] (no issues, ' + LEVELS.length + ' levels)';
+  } else {
+    vEl.className = 'bad';
+    vEl.textContent = 'validateLevels() -> ' + issues.length + ' issue(s):\n' +
+      issues.map((s) => '  - ' + s).join('\n');
+  }
+
+  // legend line
+  const legendLine = Object.entries(LEGEND)
+    .filter(([ch]) => ch !== ' ')
+    .map(([ch, desc]) => ch + ' = ' + desc)
+    .join('  ·  ');
+
+  // grids
+  const root = document.getElementById('levels');
+  LEVELS.forEach((lv, i) => {
+    const div = document.createElement('div');
+    div.className = 'level';
+
+    const h = document.createElement('h2');
+    h.textContent = 'Level ' + (i + 1) + ' — ' + lv.name + (lv.boss ? '  [BOSS]' : '');
+    div.appendChild(h);
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent =
+      'theme: ' + lv.theme + ' · time: ' + lv.time + 's · movers: ' +
+      ((lv.movers && lv.movers.length) || 0) +
+      ((lv.movers && lv.movers.length)
+        ? ' (' + lv.movers.map((m) => `(${m.x1},${m.y1})↔(${m.x2},${m.y2}) ${m.period}s`).join(', ') + ')'
+        : '') +
+      ' · wrap gaps: ' + (/[^#]/.test(lv.grid[19]) ? 'yes' : 'no');
+    div.appendChild(meta);
+
+    const pre = document.createElement('pre');
+    pre.className = 'grid';
+    pre.innerHTML = lv.grid.map((row) =>
+      [...row].map((ch) => {
+        const cls = CLASSES[ch];
+        return cls ? `<span class="${cls}">${esc(ch)}</span>` : esc(ch);
+      }).join('')
+    ).join('\n');
+    div.appendChild(pre);
+
+    root.appendChild(div);
+  });
+
+  const foot = document.createElement('div');
+  foot.className = 'meta';
+  foot.style.marginTop = '8px';
+  foot.textContent = legendLine;
+  root.appendChild(foot);
+</script>
+</body>
+</html>

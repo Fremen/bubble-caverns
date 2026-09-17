@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bubble Caverns — Sprite Gallery</title>
+<style>
+  body {
+    background: #0c0e1a;
+    color: #cfd6f2;
+    font: 13px/1.45 system-ui, sans-serif;
+    margin: 0;
+    padding: 18px 22px 60px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; color: #8fd8ff; }
+  h2 { font-size: 15px; margin: 28px 0 10px; color: #ffd86b; border-bottom: 1px solid #232a4a; padding-bottom: 4px; }
+  #status { color: #7fe8a8; margin-bottom: 14px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .cell {
+    background: #151a2e;
+    border: 1px solid #262d4f;
+    border-radius: 8px;
+    padding: 7px 9px;
+    text-align: center;
+  }
+  .cell canvas {
+    display: block;
+    margin: 0 auto 5px;
+    background:
+      repeating-conic-gradient(rgba(255,255,255,0.045) 0% 25%, rgba(0,0,0,0.10) 0% 50%) 0 0 / 16px 16px;
+    border-radius: 4px;
+  }
+  .cell .lbl { color: #9aa6d8; font-size: 11px; white-space: nowrap; }
+  .bgcell { text-align: center; }
+  .bgcell canvas { width: 384px; height: 281.6px; border-radius: 10px; border: 1px solid #262d4f; display: block; margin-bottom: 5px; }
+</style>
+</head>
+<body>
+<h1>Bubble Caverns — sprites.js gallery</h1>
+<div id="status">loading module…</div>
+
+<h2>Animated background themes (drawBackground)</h2>
+<div id="bgs" class="grid"></div>
+
+<div id="gallery"></div>
+
+<script type="module">
+  import { initSprites, sprite, drawBackground, SPRITE_LIST } from '../js/sprites.js';
+
+  const t0 = performance.now();
+  initSprites();
+  const initMs = (performance.now() - t0).toFixed(1);
+
+  const names = Object.keys(SPRITE_LIST);
+  const frameCount = names.reduce((a, n) => a + SPRITE_LIST[n].frames, 0);
+  document.getElementById('status').textContent =
+    `initSprites() took ${initMs} ms — ${names.length} sprites, ${frameCount} frames.`;
+
+  // --- animated background previews -------------------------------------
+  const bgs = document.getElementById('bgs');
+  const bgCanvases = [];
+  for (const theme of ['moss', 'crystal', 'ember', 'abyss', 'gold']) {
+    const cell = document.createElement('div');
+    cell.className = 'bgcell';
+    const c = document.createElement('canvas');
+    c.width = 960; c.height = 704;
+    cell.appendChild(c);
+    const lbl = document.createElement('div');
+    lbl.className = 'lbl';
+    lbl.textContent = `theme: ${theme}`;
+    cell.appendChild(lbl);
+    bgs.appendChild(cell);
+    bgCanvases.push({ ctx: c.getContext('2d'), theme });
+  }
+  const start = performance.now();
+  (function loop() {
+    const t = (performance.now() - start) / 1000;
+    for (const b of bgCanvases) drawBackground(b.ctx, b.theme, t);
+    requestAnimationFrame(loop);
+  })();
+
+  // --- every sprite, every frame, labeled --------------------------------
+  const gallery = document.getElementById('gallery');
+  const groups = [
+    ['Player 1 — Puff', (n) => n.startsWith('p1_')],
+    ['Player 2 — Plop', (n) => n.startsWith('p2_')],
+    ['Enemies', (n) => /^(bumbler|hopkin|snoot|wispel|klonk|grimble|boss)/.test(n)],
+    ['Bubbles', (n) => /^(bubble_|bouncer)/.test(n)],
+    ['Items & power-ups', (n) => /^(cherry|blueberry|banana|melon|crystal_fruit|rainbow_fruit|shoe|candy_|star|gem|heart|bolt)/.test(n)],
+    ['Tiles & hazards', (n) => /^(tile_|spike|orb)/.test(n)],
+    ['HUD & misc', (n) => /^(life_|logo|spark)/.test(n)],
+  ];
+  const used = new Set();
+  for (const [title, match] of groups) {
+    const matched = names.filter((n) => !used.has(n) && match(n));
+    if (!matched.length) continue;
+    matched.forEach((n) => used.add(n));
+    const h = document.createElement('h2');
+    h.textContent = title;
+    gallery.appendChild(h);
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    gallery.appendChild(grid);
+    for (const name of matched) {
+      const { frames, w, h: sh } = SPRITE_LIST[name];
+      for (let f = 0; f < frames; f++) {
+        const img = sprite(name, f);
+        const scale = w <= 64 ? 2 : 1;
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        const c = document.createElement('canvas');
+        c.width = w * scale; c.height = sh * scale;
+        const g = c.getContext('2d');
+        g.imageSmoothingEnabled = true;
+        g.drawImage(img, 0, 0, w * scale, sh * scale);
+        cell.appendChild(c);
+        const lbl = document.createElement('div');
+        lbl.className = 'lbl';
+        lbl.textContent = frames > 1 ? `${name} [${f}]` : name;
+        cell.appendChild(lbl);
+        grid.appendChild(cell);
+      }
+    }
+  }
+
+  // --- placeholder behaviour demo -----------------------------------------
+  const h = document.createElement('h2');
+  h.textContent = 'Unknown-name fallback (magenta placeholder + one console.warn)';
+  gallery.appendChild(h);
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  gallery.appendChild(grid);
+  const ph = sprite('definitely_not_a_sprite');
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  c.getContext('2d').drawImage(ph, 0, 0, 64, 64);
+  cell.appendChild(c);
+  const lbl = document.createElement('div');
+  lbl.className = 'lbl';
+  lbl.textContent = "sprite('definitely_not_a_sprite')";
+  cell.appendChild(lbl);
+  grid.appendChild(cell);
+</script>
+</body>
+</html>

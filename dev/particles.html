@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bubble Caverns — Particles preview</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 16px;
+    background: #0c0a14; color: #cfd3e0;
+    font: 13px/1.5 system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  h1 { font-size: 15px; margin: 0; color: #8fe8ff; font-weight: 600; }
+  #bar {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    justify-content: center; max-width: 980px;
+  }
+  button, select {
+    background: #1c1830; color: #e8eaf2;
+    border: 1px solid #3a3458; border-radius: 6px;
+    padding: 6px 12px; font: inherit; cursor: pointer;
+  }
+  button:hover { background: #2a2447; border-color: #5a4f8a; }
+  button:active { transform: translateY(1px); }
+  label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  #count {
+    font-variant-numeric: tabular-nums; color: #7ae582;
+    background: #131022; border: 1px solid #2a2447;
+    border-radius: 6px; padding: 6px 10px; min-width: 96px; text-align: center;
+  }
+  canvas {
+    background: #100d1c; border: 1px solid #2a2447; border-radius: 8px;
+    max-width: 100%; height: auto; cursor: crosshair;
+  }
+  .hint { color: #6b6f85; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>Bubble Caverns — particles.js preview</h1>
+<div id="bar">
+  <span id="count">0 / 800</span>
+  <button data-fx="pop">Pop</button>
+  <button data-fx="popBig">Pop (big)</button>
+  <button data-fx="burst">Burst</button>
+  <button data-fx="sparkle">Sparkle</button>
+  <button data-fx="collect">Collect</button>
+  <button data-fx="confetti">Confetti</button>
+  <button data-fx="dustL">Dust &larr;</button>
+  <button data-fx="dustR">Dust &rarr;</button>
+  <button data-fx="text100">Text +100</button>
+  <button data-fx="textBonus">Text BONUS!</button>
+  <button data-fx="shake">Shake</button>
+  <button data-fx="clear">Clear</button>
+  <label>ambient <input type="checkbox" id="ambientOn" checked></label>
+  <select id="theme">
+    <option value="moss">moss</option>
+    <option value="crystal">crystal</option>
+    <option value="ember">ember</option>
+    <option value="abyss">abyss</option>
+    <option value="gold">gold</option>
+  </select>
+</div>
+<canvas id="cv" width="960" height="704"></canvas>
+<p class="hint">Move the mouse over the canvas to set the trigger point. Click the canvas to pop.</p>
+
+<script type="module">
+import { Particles, Shake } from '../js/particles.js';
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const countEl = document.getElementById('count');
+const themeSel = document.getElementById('theme');
+const ambientOn = document.getElementById('ambientOn');
+
+let mx = cv.width / 2, my = cv.height / 2;
+
+function toCanvas(e) {
+  const r = cv.getBoundingClientRect();
+  mx = (e.clientX - r.left) * (cv.width / r.width);
+  my = (e.clientY - r.top) * (cv.height / r.height);
+}
+cv.addEventListener('mousemove', toCanvas);
+cv.addEventListener('mousedown', (e) => {
+  toCanvas(e);
+  Particles.pop(mx, my, { big: e.shiftKey });
+});
+
+const FX = {
+  pop:      () => Particles.pop(mx, my),
+  popBig:   () => Particles.pop(mx, my, { big: true, hue: 330 }),
+  burst:    () => Particles.burst(mx, my, {
+              count: 18,
+              palette: ['#ffd166', '#ff5d73', '#4cc9f0', '#ffffff'],
+              speed: 220, life: 0.7, gravity: 320, glow: true,
+            }),
+  sparkle:  () => Particles.sparkle(mx, my, '#aef3ff'),
+  collect:  () => Particles.collect(mx, my, '#ffe9a0'),
+  confetti: () => Particles.confetti(mx, my),
+  dustL:    () => Particles.trailDust(mx, my, -1),
+  dustR:    () => Particles.trailDust(mx, my, 1),
+  text100:  () => Particles.text(mx, my, '+100', { color: '#7ae582', size: 20 }),
+  textBonus:() => Particles.text(mx, my, 'BONUS!', { color: '#ffd166', size: 26 }),
+  shake:    () => Shake.add(0.5),
+  clear:    () => Particles.clear(),
+};
+
+for (const btn of document.querySelectorAll('#bar button')) {
+  btn.addEventListener('click', () => FX[btn.dataset.fx]());
+}
+
+function drawBackdrop() {
+  ctx.fillStyle = '#100d1c';
+  ctx.fillRect(-16, -16, cv.width + 32, cv.height + 32);
+  ctx.strokeStyle = 'rgba(120, 130, 200, 0.07)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = 0; x <= cv.width; x += 32) { ctx.moveTo(x, 0); ctx.lineTo(x, cv.height); }
+  for (let y = 64; y <= cv.height; y += 32) { ctx.moveTo(0, y); ctx.lineTo(cv.width, y); }
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(143, 232, 255, 0.25)';
+  ctx.strokeRect(0.5, 64.5, cv.width - 1, cv.height - 65);
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+
+  if (ambientOn.checked) Particles.ambient(themeSel.value, dt, cv.width, cv.height);
+  Particles.update(dt);
+  Shake.update(dt);
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.save();
+  ctx.translate(Shake.x, Shake.y);
+  drawBackdrop();
+  Particles.draw(ctx);
+  ctx.restore();
+
+  countEl.textContent = Particles.count + ' / 800';
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bubble Caverns — audio test bench</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 24px; background: #10131c; color: #dfe6f2;
+    font: 15px/1.5 system-ui, sans-serif;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 26px 0 10px; color: #8fd0ff; text-transform: uppercase; letter-spacing: .08em; }
+  #unlockNote {
+    background: #3a2d08; border: 2px solid #f0b429; border-radius: 10px;
+    padding: 16px 20px; margin: 18px 0; font-size: 18px; font-weight: 700; color: #ffe9a8;
+    cursor: pointer;
+  }
+  #unlockNote.ok { background: #0e2e16; border-color: #3ecf6a; color: #b8f5c9; cursor: default; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button {
+    background: #1d2433; color: #dfe6f2; border: 1px solid #38445c; border-radius: 8px;
+    padding: 8px 14px; font: inherit; cursor: pointer;
+  }
+  button:hover { background: #28324a; }
+  button:active { transform: translateY(1px); }
+  button.music { background: #16294a; border-color: #2e5da8; }
+  button.music:hover { background: #1e3a66; }
+  label { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px;
+          background: #1a2030; border-radius: 8px; border: 1px solid #2c364c; }
+  input[type=range] { width: 180px; }
+  .pitchVal { min-width: 1.2em; text-align: center; font-weight: 700; color: #8fd0ff; }
+  small { color: #7b879c; }
+</style>
+</head>
+<body>
+  <h1>Bubble Caverns — audio test bench</h1>
+  <small>dev preview for <code>js/audio.js</code> (&sect;Audio contract)</small>
+
+  <div id="unlockNote">
+    &#128266; CLICK ANYWHERE (or this box) TO UNLOCK AUDIO &mdash; browsers block
+    sound until a user gesture. Nothing will play before that.
+  </div>
+
+  <h2>SFX</h2>
+  <div class="row" id="sfx"></div>
+  <div class="row" style="margin-top:10px">
+    <label>pop pitch (combo 0&ndash;7)
+      <input type="range" id="pitch" min="0" max="7" step="1" value="0">
+      <span class="pitchVal" id="pitchVal">0</span>
+    </label>
+    <small>the <b>pop</b> button uses this slider</small>
+  </div>
+
+  <h2>Music</h2>
+  <div class="row" id="music"></div>
+  <div class="row" style="margin-top:10px">
+    <label><input type="checkbox" id="fast"> fast (hurry-up, &times;1.35, switches at next bar)</label>
+  </div>
+
+  <h2>Master</h2>
+  <div class="row">
+    <label><input type="checkbox" id="mute"> mute</label>
+  </div>
+
+<script type="module">
+  import { AudioSys, SFX_LIST } from '../js/audio.js';
+
+  AudioSys.init();
+
+  const note = document.getElementById('unlockNote');
+  function unlock() {
+    AudioSys.unlock();
+    note.classList.add('ok');
+    note.innerHTML = '&#9989; Audio unlocked &mdash; make some noise.';
+  }
+  window.addEventListener('pointerdown', unlock, { once: true });
+  window.addEventListener('keydown', unlock, { once: true });
+
+  // One button per SFX, straight from the contract list.
+  const pitch = document.getElementById('pitch');
+  const pitchVal = document.getElementById('pitchVal');
+  pitch.addEventListener('input', () => { pitchVal.textContent = pitch.value; });
+
+  const sfxRow = document.getElementById('sfx');
+  for (const name of SFX_LIST) {
+    const b = document.createElement('button');
+    b.textContent = name;
+    b.addEventListener('click', () => {
+      const opts = name === 'pop' ? { pitch: +pitch.value } : {};
+      AudioSys.play(name, opts);
+    });
+    sfxRow.appendChild(b);
+  }
+
+  // Music controls.
+  const musicRow = document.getElementById('music');
+  for (const track of ['title', 'main', 'boss']) {
+    const b = document.createElement('button');
+    b.className = 'music';
+    b.textContent = '▶ ' + track;
+    b.addEventListener('click', () => AudioSys.music.play(track));
+    musicRow.appendChild(b);
+  }
+  const stop = document.createElement('button');
+  stop.className = 'music';
+  stop.textContent = '■ stop';
+  stop.addEventListener('click', () => AudioSys.music.stop());
+  musicRow.appendChild(stop);
+
+  document.getElementById('fast').addEventListener('change', (e) => {
+    AudioSys.music.setFast(e.target.checked);
+  });
+
+  document.getElementById('mute').addEventListener('change', (e) => {
+    AudioSys.setMuted(e.target.checked);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bubble Caverns — logic tests</title>
+<style>
+  body { background: #0b0e22; color: #cfe3ff; font: 14px/1.5 ui-monospace, monospace; padding: 20px; }
+  .pass { color: #7be8c8; } .fail { color: #ff5470; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Bubble Caverns — logic tests</h1>
+<pre id="out">running…</pre>
+<canvas id="game" width="960" height="704" style="display:none"></canvas>
+<script type="module">
+import { PHYS, TILE, STEP, SCORING } from '../js/constants.js';
+import { validateLevels, LEVELS } from '../js/levels.js';
+import { comboPoints, ScoreSystem } from '../js/score.js';
+import { initSprites, SPRITE_LIST, sprite } from '../js/sprites.js';
+import { AudioSys, SFX_LIST } from '../js/audio.js';
+import { Particles, Shake } from '../js/particles.js';
+import { Game } from '../js/game.js';
+import { Input } from '../js/input.js';
+
+const out = document.getElementById('out');
+out.textContent = '';
+const results = [];
+function check(name, cond, detail = '') {
+  results.push({ name, ok: !!cond });
+  const line = document.createElement('div');
+  line.className = cond ? 'pass' : 'fail';
+  line.textContent = `${cond ? 'PASS' : 'FAIL'}  ${name}${cond ? '' : '  — ' + detail}`;
+  out.appendChild(line);
+  console.log(`[test] ${cond ? 'PASS' : 'FAIL'} ${name} ${cond ? '' : detail}`);
+}
+
+async function run() {
+  // ---- levels --------------------------------------------------------
+  const issues = validateLevels();
+  check('levels: validateLevels() clean', issues.length === 0, JSON.stringify(issues.slice(0, 5)));
+  check('levels: 12 defined', LEVELS.length === 12, `got ${LEVELS.length}`);
+  check('levels: boss only on last', LEVELS.every((l, i) => !!l.boss === (i === 11)));
+
+  // ---- physics math --------------------------------------------------
+  const apex = (PHYS.JUMP_V * PHYS.JUMP_V) / (2 * PHYS.GRAVITY);
+  check('physics: jump apex ≈ 3.75 tiles', Math.abs(apex / TILE - 3.75) < 0.01, `apex=${apex}`);
+
+  // ---- scoring -------------------------------------------------------
+  check('score: combo doubles 1000→2000→4000', comboPoints(1) === 1000 && comboPoints(2) === 2000 && comboPoints(3) === 4000);
+  check('score: combo caps at 16000', comboPoints(9) === SCORING.POP_CAP);
+
+  // ---- hi-score persistence -----------------------------------------
+  localStorage.removeItem('bubbleCaverns.scores.v1');
+  const s1 = new ScoreSystem();
+  s1.insert('TST', 999999, 3);
+  const s2 = new ScoreSystem();
+  check('score: hi-score persists via localStorage', s2.table[0].ini === 'TST' && s2.table[0].score === 999999);
+  localStorage.removeItem('bubbleCaverns.scores.v1');
+
+  // ---- module contracts ---------------------------------------------
+  check('sprites: SPRITE_LIST present', SPRITE_LIST && Object.keys(SPRITE_LIST).length > 30, `got ${SPRITE_LIST && Object.keys(SPRITE_LIST).length}`);
+  check('audio: SFX_LIST has core sounds', ['shoot', 'trap', 'pop', 'level_clear', 'hurry'].every(n => SFX_LIST.includes(n)));
+  check('particles: contract methods', ['pop', 'burst', 'text', 'ambient', 'confetti'].every(m => typeof Particles[m] === 'function') && typeof Shake.add === 'function');
+
+  initSprites();
+  const needed = ['p1_run', 'p2_idle', 'bumbler_walk', 'hopkin_walk', 'snoot_walk', 'wispel_fly', 'klonk_walk', 'grimble_fly', 'boss_walk', 'bubble_float', 'bubble_pop', 'bouncer', 'cherry', 'star', 'bolt', 'tile_solid_moss', 'tile_plat_gold', 'logo', 'orb', 'spike'];
+  check('sprites: all core names render', needed.every(n => { const c = sprite(n, 0); return c && c.width > 1; }));
+
+  // ---- integration: trap → pop → score → clear ----------------------
+  AudioSys.setMuted(true);
+  const game = new Game({ seed: 42 });
+  game.startGame(1, 0);
+  const step = (n) => { for (let i = 0; i < n; i++) game.update(STEP); };
+  step(60 * 3);                                    // intro + spawns settle
+  check('game: round 1 underway', game.state === 'play' && game.enemies.length === 2, `state=${game.state} enemies=${game.enemies.length}`);
+
+  // teleport an enemy in front of the player and shoot
+  const p = game.players[0];
+  p.invuln = 99;                                   // safety for the test
+  const e = game.enemies[0];
+  e.x = p.x + p.dir * 70; e.y = p.y; e.vx = 0; e.state = 'active';
+  Input.inject('KeyJ', true); step(2); Input.inject('KeyJ', false);
+  let trapped = false;
+  for (let i = 0; i < 40 && !trapped; i++) { e.x = p.x + p.dir * 70; e.y = p.y; step(1); trapped = e.state === 'trapped'; }
+  check('game: bubble traps enemy', trapped, `enemy state=${e.state}`);
+  check('game: trap scored 100', game.score.scores[0] >= 100, `score=${game.score.scores[0]}`);
+
+  // walk into the bubble to pop it
+  const bub = game.bubbles.find(b => b.captured === e);
+  check('game: bubble holds captive', !!bub);
+  if (bub) {
+    let popped = false;
+    for (let i = 0; i < 120 && !popped; i++) {
+      p.x = bub.x; p.y = bub.y; p.vy = 0;          // ensure touch-pop path, not bounce
+      step(1);
+      popped = !game.enemies.includes(e);
+    }
+    check('game: pop defeats enemy', popped, `enemies=${game.enemies.length}`);
+    check('game: pop scored 1000+', game.score.scores[0] >= 1100, `score=${game.score.scores[0]}`);
+    check('game: snack dropped', game.items.length >= 1);
+  }
+
+  // defeat the rest and reach CAVE CLEAR
+  for (let guard = 0; guard < 20 && game.enemies.filter(x => x.type !== 'grimble').length; guard++) {
+    const foe = game.enemies.find(x => x.type !== 'grimble');
+    game.enemyDefeated(foe, 0);
+    step(2);
+  }
+  step(30);
+  check('game: level clear state reached', game.state === 'clear', `state=${game.state}`);
+  step(60 * 5);
+  check('game: advanced to round 2', game.levelIndex === 1 && game.state === 'play', `level=${game.levelIndex} state=${game.state}`);
+
+  // ---- hurry-up pressure ---------------------------------------------
+  step(130);                                       // clear round-2 intro freeze first
+  game.level.time = 21; step(90);
+  check('game: hurry mode triggers', game.hurry === true);
+  check('game: enemies enraged', game.enemies.every(x => x.angry));
+  game.level.time = 0.01; step(30);
+  check('game: Grimble spawns at timeout', game.enemies.some(x => x.type === 'grimble'));
+
+  // ---- player death & respawn ----------------------------------------
+  const p2 = game.players[0];
+  p2.invuln = 0; p2.pow.star = 0;
+  const lives = p2.lives;
+  p2.hit(game);
+  check('game: hit costs a life', p2.lives === lives - 1 && p2.state === 'dead');
+  step(60 * 2.5);
+  check('game: respawn with invulnerability', p2.state === 'play' && p2.invuln > 0, `state=${p2.state} invuln=${p2.invuln}`);
+
+  const passed = results.filter(r => r.ok).length;
+  const summary = `\n${passed}/${results.length} passed`;
+  out.appendChild(Object.assign(document.createElement('div'), {
+    textContent: summary, className: passed === results.length ? 'pass' : 'fail',
+  }));
+  console.log(`[test] DONE ${passed}/${results.length}`);
+  window.__testsDone = { passed, total: results.length, failures: results.filter(r => !r.ok).map(r => r.name) };
+}
+
+run().catch(err => {
+  console.error('[test] CRASH', err);
+  out.appendChild(Object.assign(document.createElement('div'), { textContent: 'CRASH: ' + err.message, className: 'fail' }));
+  window.__testsDone = { passed: 0, total: 1, failures: ['crash: ' + err.message] };
+});
+</script>
+</body>
+</html>
