@@ -27,7 +27,7 @@ function fit() {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
   }
-  const scale = Math.min(window.innerWidth / WIDTH, window.innerHeight / HEIGHT) * 0.98;
+  const scale = Math.min(window.innerWidth / WIDTH, (document.querySelector("main").clientHeight || window.innerHeight) / HEIGHT) * 0.98;
   canvas.style.width = `${WIDTH * scale}px`;
   canvas.style.height = `${HEIGHT * scale}px`;
 }
