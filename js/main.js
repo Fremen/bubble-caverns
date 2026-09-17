@@ -3,7 +3,7 @@
 
 import { WIDTH, HEIGHT, STEP } from './constants.js';
 import { initSprites } from './sprites.js';
-import { AudioSys } from './audio.js?v=20260917c';
+import { AudioSys } from './audio.js?v=20260917d';
 import { Input } from './input.js';
 import { Game } from './game.js';
 import { validateLevels } from './levels.js';
@@ -48,6 +48,7 @@ try {
 }
 AudioSys.init();
 if (params.get('mute') === '1') AudioSys.setMuted(true);
+if (params.get('debugAudio') === '1') window.__audioDebug = () => AudioSys.debugState();
 
 Input.attach(window);
 // unlock is idempotent — keep re-arming it so audio recovers if the

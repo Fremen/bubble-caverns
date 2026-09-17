@@ -13,7 +13,7 @@ import { ScoreSystem, comboPoints } from './score.js';
 import { parseLevel, updateMovers, drawMovers } from './levelManager.js';
 import { LEVELS } from './levels.js';
 import { sprite, drawBackground } from './sprites.js';
-import { AudioSys } from './audio.js?v=20260917c';
+import { AudioSys } from './audio.js?v=20260917d';
 import { Particles, Shake } from './particles.js';
 import * as UI from './ui.js';
 

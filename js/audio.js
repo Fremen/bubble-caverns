@@ -29,7 +29,7 @@ let unlocked = false;
 
 const MASTER_VOL = 0.55;
 const SFX_VOL = 0.85;
-const MUSIC_VOL = 0.30;  // music sits under the SFX
+const MUSIC_VOL = 0.58;  // clearly audible, while still below gameplay SFX
 
 const warned = new Set();
 
@@ -470,13 +470,13 @@ function transposeRoots(roots, semitones) {
 // score. Gameplay uses the ambient volumes: slow pads, a low drone and sparse
 // bell-like echoes, leaving space for the effects that matter to play.
 const MUSIC_STYLES = {
-  title:   { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.11, arpVol: 0.018, padVol: 0.026, droneVol: 0.055, bellVol: 0.032 },
-  moss:    { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.11, arpVol: 0.018, padVol: 0.030, droneVol: 0.060, bellVol: 0.027 },
-  crystal: { lead: 'sine', bass: 'sine', leadVol: 0.08, bassVol: 0.10, arpVol: 0.020, padVol: 0.024, droneVol: 0.045, bellVol: 0.040 },
-  gold:    { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.11, arpVol: 0.020, padVol: 0.029, droneVol: 0.052, bellVol: 0.034 },
-  ember:   { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.12, arpVol: 0.018, padVol: 0.025, droneVol: 0.070, bellVol: 0.024 },
-  abyss:   { lead: 'sine', bass: 'sine', leadVol: 0.07, bassVol: 0.12, arpVol: 0.016, padVol: 0.022, droneVol: 0.075, bellVol: 0.020 },
-  boss:    { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.13, arpVol: 0.018, padVol: 0.027, droneVol: 0.085, bellVol: 0.026 },
+  title:   { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.11, arpVol: 0.018, padVol: 0.060, droneVol: 0.095, bellVol: 0.065 },
+  moss:    { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.11, arpVol: 0.018, padVol: 0.066, droneVol: 0.105, bellVol: 0.056 },
+  crystal: { lead: 'sine', bass: 'sine', leadVol: 0.08, bassVol: 0.10, arpVol: 0.020, padVol: 0.055, droneVol: 0.085, bellVol: 0.078 },
+  gold:    { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.11, arpVol: 0.020, padVol: 0.064, droneVol: 0.095, bellVol: 0.068 },
+  ember:   { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.12, arpVol: 0.018, padVol: 0.058, droneVol: 0.115, bellVol: 0.052 },
+  abyss:   { lead: 'sine', bass: 'sine', leadVol: 0.07, bassVol: 0.12, arpVol: 0.016, padVol: 0.052, droneVol: 0.125, bellVol: 0.045 },
+  boss:    { lead: 'triangle', bass: 'sine', leadVol: 0.08, bassVol: 0.13, arpVol: 0.018, padVol: 0.060, droneVol: 0.135, bellVol: 0.055 },
 };
 
 function drumsTitle(s) {
@@ -720,13 +720,15 @@ export const AudioSys = {
         ctx = new AC();
         buildGraph();
       }
+      unlocked = true;
+      // Create and schedule the requested track during the user gesture. This
+      // is important on iOS Safari, where waiting for a timer after resume can
+      // leave an otherwise valid AudioContext silent.
+      if (wantTrack && !song) startSong(wantTrack);
       if (ctx.state !== 'running') {
         const p = ctx.resume();
-        if (p && p.catch) p.catch(() => {});
+        if (p && p.then) p.then(() => seqTick()).catch(() => {});
       }
-      unlocked = true;
-      // a track requested before unlock starts now (e.g. title music at boot)
-      if (wantTrack && !song) startSong(wantTrack);
     } catch (e) { /* never throw */ }
   },
 
@@ -791,6 +793,19 @@ export const AudioSys = {
       this.muted = !!m;
       applyMute(this.muted);
     } catch (e) { /* never throw */ }
+  },
+
+  // Read-only diagnostics used by the test harness.
+  debugState() {
+    return {
+      unlocked,
+      contextState: ctx ? ctx.state : 'missing',
+      track: song ? song.name : wantTrack,
+      scheduled: !!song,
+      muted: this.muted,
+      masterVolume: MASTER_VOL,
+      musicVolume: MUSIC_VOL,
+    };
   },
 };
 

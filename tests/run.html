@@ -17,7 +17,7 @@ import { PHYS, TILE, STEP, SCORING } from '../js/constants.js';
 import { validateLevels, LEVELS } from '../js/levels.js';
 import { comboPoints, ScoreSystem } from '../js/score.js';
 import { initSprites, SPRITE_LIST, sprite } from '../js/sprites.js';
-import { AudioSys, MUSIC_TRACKS, SFX_LIST } from '../js/audio.js?v=20260917c';
+import { AudioSys, MUSIC_TRACKS, SFX_LIST } from '../js/audio.js?v=20260917d';
 import { Particles, Shake } from '../js/particles.js';
 import { Game } from '../js/game.js';
 import { Input } from '../js/input.js';
@@ -73,6 +73,7 @@ async function run() {
   check('sprites: SPRITE_LIST present', SPRITE_LIST && Object.keys(SPRITE_LIST).length > 30, `got ${SPRITE_LIST && Object.keys(SPRITE_LIST).length}`);
   check('audio: SFX_LIST has core sounds', ['shoot', 'trap', 'pop', 'level_clear', 'hurry'].every(n => SFX_LIST.includes(n)));
   check('audio: every cave theme has music', ['moss', 'crystal', 'gold', 'ember', 'abyss'].every(n => MUSIC_TRACKS.includes(n)));
+  check('audio: ambient mix is audible', AudioSys.debugState().musicVolume >= 0.5);
   check('particles: contract methods', ['pop', 'burst', 'text', 'ambient', 'confetti'].every(m => typeof Particles[m] === 'function') && typeof Shake.add === 'function');
 
   initSprites();

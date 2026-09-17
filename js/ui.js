@@ -5,7 +5,7 @@
 import { WIDTH, HEIGHT, PLAY_Y, COLORS, TIMERS } from './constants.js';
 import { clamp, fmtScore, easeOutBack } from './utils.js';
 import { sprite, drawBackground } from './sprites.js';
-import { AudioSys } from './audio.js?v=20260917c';
+import { AudioSys } from './audio.js?v=20260917d';
 import { LEVELS } from './levels.js';
 
 const FONT = "'Arial Rounded MT Bold', 'Nunito', 'Trebuchet MS', sans-serif";
