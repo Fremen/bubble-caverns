@@ -1,8 +1,12 @@
 # 🫧 Bubble Caverns
 
+**[Play Bubble Caverns](https://fremen.github.io/bubble-caverns/)**
+
+![Bubble Caverns title screen](docs/screenshot.jpg)
+
 An original single-screen arcade platformer in the spirit of beloved Amiga-era
 bubble-trapping games — rebuilt from scratch with modern hand-painted canvas
-art, synthesized chiptune audio, and juicy game feel. Every character, name,
+art, atmospheric synthesised audio, and juicy game feel. Every character, name,
 sprite, sound, and melody here is original.
 
 **Trap critters in bubbles. Pop them. Chain combos. Eat the snacks. Don't dawdle.**
@@ -13,7 +17,6 @@ No build step, no dependencies — it's vanilla ES modules. Serve the folder
 over HTTP (modules don't load from `file://`):
 
 ```bash
-cd bubblebobble
 python3 -m http.server 8763
 # then open http://localhost:8763
 ```
