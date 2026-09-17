@@ -4,7 +4,7 @@
 import { SCORING, COLORS } from './constants.js';
 import { fmtScore } from './utils.js';
 import { Particles } from './particles.js';
-import { AudioSys } from './audio.js';
+import { AudioSys } from './audio.js?v=20260917b';
 
 const STORE_KEY = 'bubbleCaverns.scores.v1';
 const DEFAULT_TABLE = [

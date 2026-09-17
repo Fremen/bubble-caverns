@@ -5,7 +5,7 @@ import { ITEMS, ITEM_LIFETIME, PLAY_Y, PLAY_H } from './constants.js';
 import { moveEntity } from './physics.js';
 import { sprite } from './sprites.js';
 import { Particles } from './particles.js';
-import { AudioSys } from './audio.js';
+import { AudioSys } from './audio.js?v=20260917b';
 import { COLORS } from './constants.js';
 
 export class Item {
