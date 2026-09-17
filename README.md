@@ -116,3 +116,10 @@ single-screen bubble-trapping arcade platformers — without using any
 copyrighted assets, names, or music.
 
 Released under the [MIT License](LICENSE).
+
+
+## Touch controls
+
+On touchscreen devices, controls appear below the game. Use the direction pad for movement and menus, Jump to jump, and Bubble to shoot. Start confirms menus; Pause opens the pause menu. Touch controls operate player one. Multiple controls can be held together. Inputs release on cancelled touches or when switching away from the app. Landscape gives more horizontal room.
+
+The game viewport reserves space for the control panel and its safe-area padding. Mobile input lifecycle checks pass; physical iPhone Safari performance and playability still need device testing.
